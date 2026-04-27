@@ -1,0 +1,31 @@
+{
+    "frontMatter.framework.id": "hugo",
+    "frontMatter.content.publicFolder": "static",
+    "frontMatter.preview.host": "http://localhost:1313",
+    "frontMatter.content.pageFolders": [
+        {
+            "path": "[[workspace]]/archetypes"
+        },
+        {
+            "title": "networking-and-self-hosting",
+            "path": "[[workspace]]/content/networking-and-self-hosting"
+        },
+        {
+            "title": "misc",
+            "path": "[[workspace]]/content/misc"
+        },
+        {
+            "title": "home-lab",
+            "path": "[[workspace]]/content/home-lab"
+        },
+        {
+            "title": "home-assistant",
+            "path": "[[workspace]]/content/home-assistant"
+        },
+        {
+            "title": "3d-printing",
+            "path": "[[workspace]]/content/3d-printing"
+        }
+    ],
+    "frontMatter.git.enabled": true
+}

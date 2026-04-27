@@ -188,3 +188,19 @@ forgejoDefaultServer = "https://v11.next.forgejo.org"
 
 [advertisement]
   # adsense = ""
+[comments]
+  enabled = true
+  provider = "giscus"
+
+[comments.giscus]
+  repo = "sirromeoj1/josephrobertmorris-blog"
+  repoId = "R_kgDOSIKMYA"
+  category = "Announcements"
+  categoryId = "DIC_kwDOSIKMYM4C7wif"
+  mapping = "pathname"
+  strict = "0"
+  reactionsEnabled = "1"
+  emitMetadata = "0"
+  inputPosition = "top"
+  theme = "dark_dimmed"
+  lang = "en"
