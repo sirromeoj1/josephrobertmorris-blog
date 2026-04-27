@@ -6,6 +6,7 @@ preview: ""
 draft: false
 tags: [3D Printing, Manyfold, Slicing, Virtual Machine, Truenas, SliceVM]
 categories: []
+showComments: true
 ---
 
 **Initial Problems I Wanted to Solve**
