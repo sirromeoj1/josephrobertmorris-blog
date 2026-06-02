@@ -1,6 +1,6 @@
 ---
 title: Setting up authentication using PAM_U2F and Yubikeys in Bazzite Linux
-description: "How I set up up Sudo, Lock Screen and Login authentication via a Yubikey using Pam_u2F and FIDO2"
+description: "How I set up up Sudo, Lock Screen and Login authentication in Bazzite Linux via a Yubikey using Pam_u2F and FIDO2"
 date: 2026-06-02T21:30:11.453Z
 preview: ""
 draft: false
@@ -45,62 +45,96 @@ One final point: YubiKey firmware cannot be upgraded. This is an intentional sec
 
 **Initial Setup**
 
-First, you'll need to install ykman (Yubico's key-management tool):
-which ykman || sudo rpm-ostree install yubikey-manager
+First, you'll need to install ykman (Yubico's key-management tool:)
+
+**which ykman || sudo rpm-ostree install yubikey-manager**
+
 Plug in your key and confirm it's recognised:
-ykman info
+
+**ykman info**
+
 Then change the PIN on your key, for the cases where FIDO requires user verification:
-ykman fido access change-pin
-Next, install pam-u2f:
-sudo rpm-ostree install pam-u2f
+
+**ykman fido access change-pin**
+
+Next, install pam-u2f
+
+**sudo rpm-ostree install pam-u2f**
+
 Reboot, then verify it landed:
-ls /usr/lib64/security/pam_u2f.so
+
+**ls /usr/lib64/security/pam_u2f.so**
+
 You'll also want libfido2 (pre-installed in my case — check with rpm -q libfido2 and install it with sudo rpm-ostree install libfido2 if it isn't there).
 pam-u2f (Pluggable Authentication Module — Universal 2nd Factor) is the module that allows authentication via a USB key like the YubiKey; libfido2 is the underlying library that implements the FIDO2 protocol.
 After installation, your key (or keys) need to be enrolled with pam-u2f:
-mkdir -p ~/.config/Yubico
-pamu2fcfg > ~/.config/Yubico/u2f_keys
+
+**mkdir -p ~/.config/Yubico**
+**pamu2fcfg > ~/.config/Yubico/u2f_keys**
+
 If you have two keys, run the following for the second key:
-pamu2fcfg -n >> ~/.config/Yubico/u2f_keys
+
+**pamu2fcfg -n >> ~/.config/Yubico/u2f_keys**
+
 This appends the second key to the same line as the first, so pam-u2f treats them as alternatives. Verify with:
-cat ~/.config/Yubico/u2f_keys
-It should look like your username, a colon, a long string of numbers and letters, another colon, then another long string. The long strings are the key credentials that PAM will use to authenticate your keys.
+**cat ~/.config/Yubico/u2f_keys**
+
+It should look like your username, a colon, a long string of numbers and letters, another colon, then another long string. The long strings are the key credentials that PAM will use to authenticate your keys. If everything looks good then, congrats your yubikeys are set up.
 
 A quick note, if you wanted user verification, for example a pin code or for a biometric yubikey, a fingerprint, then adding –v to pamu2fcfg > ~/.config/Yubico/u2f_keys, would add this as a requirement. I did not do this as these keys will never leave my house, so the added convenience is fine. When I add keys to my laptop however, I will be using user verification however. 
-Step 3: SAFETY
+
+**SAFETY**
 Whenever you're messing around with authentication files, open a second terminal and run sudo -i (the -i ensures that the sudo privileges won't expire until the terminal is closed). This is in case something gets screwed up and you can no longer authenticate as root; the open terminal allows you to revert your changes.
 Before editing any files, please check that your TTY interface works, this is an additional fallback. Press ctrl + alt + f3, this load TTY mode, type in your user and password to check if they work, then press ctrl +alt + f2 to go back. This will allow you to revert any changes made if something breaks. 
 Allowing the YubiKey to authenticate
 I started with sudo, as that would most easily allow me to test if this was working. I ran:
-sudo nano /etc/pam.d/sudo
+
+**sudo nano /etc/pam.d/sudo**
+
 This brings up a text file with rows that look like auth include system-auth and account include system-auth.
 As the first line I added:
-auth sufficient pam_u2f.so cue
+
+**auth sufficient pam_u2f.so cue**
+
 This contains all the instructions needed. The YubiKey is at the top so it will be tried first; auth means the module is being used for authentication; sufficient means if this module suceeds, grant access, if it fails, ignore and move onto the next line, pam_u2f.so is the module doing the authentication; cue tells it to prompt you to touch the key so you know it's waiting.
 Ctrl+O to save, Enter to confirm, then Ctrl+X to exit. To test if it worked, run:
-sudo -k
-sudo whoami
+
+**sudo -k**
+**sudo whoami**
+
 It should ask you to touch the key to authenticate, then reply with root. Repeat with the second key if you have one. Then test again with only your password to confirm that the sufficient line passes through to the next.
 
-In my case it was successful, so I proceeded to /etc/pam.d/kde (for the lock screen) and /etc/pam.d/kscreensaver (mostly for any legacy programs that reference this file). Same method as above:
-sudo nano /etc/pam.d/kde
+In my case it was successful, so I proceeded to edit /etc/pam.d/kde (for the lock screen) and /etc/pam.d/kscreensaver (mostly for any legacy programs that reference this file). Same method as above:
+
+**sudo nano /etc/pam.d/kde**
+
 Add auth sufficient pam_u2f.so cue as the top line, Ctrl+O, Enter, Ctrl+X, then test both keys and password by locking your screen.
-For polkit, in my case the configuration file lived under /usr/lib/pam.d/polkit-1, which would not persist between updates. Thankfully, copying the file to /etc/pam.d/polkit-1 will make it persistent:
-sudo cp /usr/lib/pam.d/polkit-1 /etc/pam.d/polkit-1
-sudo nano /etc/pam.d/polkit-1
+
+For polkit, in my case the configuration file lived under /usr/lib/pam.d/polkit-1, which would not persist between updates. Thankfully, copying the file to /etc/pam.d/polkit-1 will fix this:
+
+**sudo cp /usr/lib/pam.d/polkit-1 /etc/pam.d/polkit-1**
+**sudo nano /etc/pam.d/polkit-1**
+
 Add auth sufficient pam_u2f.so cue at the top. Test with:
-pkexec ls /root
+
+**pkexec ls /root**
+
 This should produce a dialogue box, your key should start to flash, then when pressed it should list the root directory contents. 
 If you wish to make the Yubikey a requirement for authentication, then you could change sufficient to required. With required, even if a later password check succeeds, the overall authentication still fails — so losing the key really does lock you out, and recovery means dropping to a TTY and editing the modified files to remove the pam_u2f line. I don’t recommend this as it means to if you lose your key, then authenticating back in would require editing the modified files using TTY to remove the pam_u2f line. 
 
-Logging in with the YubiKey
+**Logging in with the YubiKey**
 
-My version of Bazzite was using plasmalogin for login management, which is a newer system than SDDM. plasmalogin has three files used for authentication: plasmalogin, plasmalogin-greeter, and plasmalogin-autologin. I edited plasmalogin. k. To make restoring easier, I copied my plasmalogin file
-sudo cp /usr/lib/pam.d/plasmalogin /etc/pam.d/plasmalogin 
+My version of Bazzite was using plasmalogin for login management, which is a newer system than SDDM. Plasmalogin for me had three files used for authentication: plasmalogin, plasmalogin-greeter, and plasmalogin-autologin. I edited plasmalogin. To make restoring easier, I copied my plasmalogin file
+
+**sudo cp /usr/lib/pam.d/plasmalogin /etc/pam.d/plasmalogin**
+
 The /etc/ version of the file is preferred by Bazzite, and would be persistent, so I edited that file but, if deleted the system would resort back to /usr/lib/pam.d/plasmalogin. Then
-sudo nano /etc/pam.d/plasmalogin
+**sudo nano /etc/pam.d/plasmalogin**
+
 to edit the file, however there is a catch with this file, the 1st line is
-auth [success=done ignore=ignore default=bad] pam_selinux_permit.so
+
+**auth [success=done ignore=ignore default=bad] pam_selinux_permit.so**
+
 This is related to SELinux (Security-Enhanced Linux, a kernel security module that handles mandatory access control), which I left alone — too much risk of breaking something. Add auth sufficient pam_u2f.so cue as the second line, immediately after the SELinux one. This is where KDEwallet partially breaks, because sufficient passes as soon as the check is complete, then the line line to authenticate KDE wallet never runs. 
 After that, logout, select user and in my case it won’t try and use the Yubikey straight away, instead it shows the password field, this is skippable by just pressing enter, then it activates the yubikey. Test your backup key if you have one, then password. If the login fails, press ctrl + alt + f3, then run 
 sudo rm /etc/pam.d/plasmalogin
