@@ -3,7 +3,7 @@ title: Modernising a CD collection on Linux, Fre:ac, EasyTAG, MusicBrainz/freedb
 description: "Using Fre:ac to rip cds and broadcasting them over my network via DLNA"
 date: 2026-06-03T00:56:09.267Z
 preview: ""
-draft: true
+draft: false
 tags: [Linux, Bazzite, Jellyfin, DLNA, Fre:ac, EasyTAG, CD ripping, FLAC, TrueNAS, home media server]
 categories: []
 showComments: true
